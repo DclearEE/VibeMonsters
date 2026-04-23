@@ -317,6 +317,7 @@ def resolve_turn(state: BattleState, action: PlayerAction) -> TurnResult:
     attacker_buffs = state.p1_buffs if action.player == "p1" else state.p2_buffs
     defender_buffs = state.p2_buffs if action.player == "p1" else state.p1_buffs
     defender_is_defending = state.p2_defending if action.player == "p1" else state.p1_defending
+    defender_hp_remaining = state.p2_hp if action.player == "p1" else state.p1_hp
 
     eff_atk = _effective_stat(attacker.stats.atk, attacker_buffs, "atk")
     eff_mag = _effective_stat(attacker.stats.mag, attacker_buffs, "mag")
@@ -349,6 +350,7 @@ ATTACKER: {attacker.name} ({attacker.element}) {attacker.emoji}
 
 DEFENDER: {defender.name} ({defender.element}) {defender.emoji}
   stats (effective): HP {defender.stats.hp} / ATK {_effective_stat(defender.stats.atk, defender_buffs, 'atk')} / DEF {eff_def} / SPD {_effective_stat(defender.stats.spd, defender_buffs, 'spd')} / MAG {_effective_stat(defender.stats.mag, defender_buffs, 'mag')}
+  CURRENT HP: {defender_hp_remaining} / {defender.stats.hp}
 {state_block}
 
 THE PLAYER WANTS THEIR MONSTER TO: "{action.raw_input}"
@@ -393,7 +395,11 @@ RESOLUTION RULES:
    - power = 10-55 based on potency + plausibility
    - impossible actions -> power 5-15, effectiveness 0.75
 
-4. NARRATION: 1-2 vivid sentences. Reference the player's intent, show what happened. Sprinkle 1-3 thematic emojis (⚡ 🔥 💥 ✨ 🌪️ 🌊 🌱 🪨 💀 💖 🛡️ 💫 🌙 ☄️ 🧿 etc.) where they fit. If the opponent is defending, acknowledge the reduced impact. If buffs are active, you can reference them. Never narrate the defender fainting — just report the damage.
+4. NARRATION: 1-2 vivid sentences. Reference the player's intent, show what happened. Sprinkle 1-3 thematic emojis (⚡ 🔥 💥 ✨ 🌪️ 🌊 🌱 🪨 💀 💖 🛡️ 💫 🌙 ☄️ 🧿 etc.) where they fit. If the opponent is defending, acknowledge the reduced impact. If buffs are active, you can reference them.
+
+   FATALITY RULE: if your chosen damage would be >= defender's CURRENT HP ({defender_hp_remaining}), this is the KILLING BLOW. In that case, write 2-4 cinematic sentences instead: describe the finishing move landing, and how {defender.name} finally goes down — knocked out cold, petrified, banished, dissolved into {defender.element} mist, scattered on the wind, unmade — whatever fits {defender.name}'s body and element. Epic, over-the-top, slow-motion. NOT gross (no blood, organs, gore — elemental/physical dissolution only). 2-4 thematic emojis woven in.
+
+   Otherwise (non-lethal damage), do NOT narrate the defender fainting — just report the hit.
 
 5. attacker must be "{action.player}", defender must be "{defender_id}".
 """
@@ -511,19 +517,31 @@ def run_battle(console: Console, p1: Monster, p2: Monster) -> Monster:
         elif state.p2_hp == 0:
             state.winner = "p1"
 
-    # Final render shows the KO narration...
+    # Final render: battle panels (no cyan log line — the killing blow gets its own panel)
     console.print()
     render_battle(
         console, p1, p2, state.p1_hp, state.p2_hp,
-        log_line=state.log[-1].narration,
+        log_line=None,
         p1_buffs=state.p1_buffs, p2_buffs=state.p2_buffs,
         p1_defending=state.p1_defending, p2_defending=state.p2_defending,
     )
-    # ...then the victory banner below it.
+
+    # The killing-blow narration (already written by resolve_turn when it went lethal)
+    # gets its own blood-red FATALITY panel.
+    console.print(
+        Panel(
+            escape(state.log[-1].narration),
+            title="[bold red]⚔️  F A T A L I T Y  ⚔️[/bold red]",
+            border_style="red",
+            padding=(1, 2),
+        )
+    )
+
+    # Victory banner.
     winner = p1 if state.winner == "p1" else p2
     console.print(
         Panel(
-            f"🏆  [bold yellow]{escape(winner.name)}[/bold yellow] is victorious!  🏆",
+            f"🏆  [bold yellow]{escape(winner.name)}[/bold yellow] wins!  🏆",
             border_style="yellow",
             padding=(1, 2),
         )
