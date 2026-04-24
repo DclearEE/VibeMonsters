@@ -36,19 +36,22 @@ Tradeoffs:
 
 Reach for **Phaser.js** only when you want particle systems, attack animations, screen flashes, sprite sheets with frames. Not day one.
 
-## Tech stack — why NOT Next.js
+## Tech stack — settled
 
-Next.js is the LLM-default because models were trained on a billion Next tutorials and Vercel markets it aggressively. For a two-player browser game you use maybe 5% of the framework.
+After a follow-up research pass, the stack for the web version is locked in. See `PLAN.md` for the full build plan.
 
-**Recommended for VibeMonsters web version: Vite + React + [PartyKit](https://www.partykit.io/).**
-- Same React skills transfer from the Python logic port.
-- No Next.js ceremony — static bundle + one tiny realtime server.
-- PartyKit is Cloudflare-backed and built for exactly this (shared rooms via short code, WebSocket "just works").
+**Stack:** SvelteKit (fullstack, server routes) + Bun + TypeScript (strict) + Zod + Biome. AI via `@anthropic-ai/sdk` for battle logic and Gemini 2.5 Flash Image ("Nano Banana") for sprites. PWA via `vite-plugin-pwa`, `adapter-static` so Capacitor can wrap the build later. Docker for hosting.
 
-Other honest alternatives:
-- **SvelteKit + PartyKit** — smaller, reactive state + built-in transitions = bobs/shakes almost free. DX is lovely.
-- **Plain HTML + Phaser + 50-line Go or Bun server** — the most honest version if it's primarily a game. No framework tax.
-- **Cloudflare Worker + static HTML** — for something this small, the whole thing could be one file at the edge.
+**Why not the earlier options, for the record:**
+- **Next.js** — heavy, React-only, Vercel-flavored; we'd use ~5% of it for a two-player game.
+- **Vite + React + PartyKit** (the original recommendation here) — fine, but SvelteKit's built-in transitions and server routes collapse a lot of this into one thing. PartyKit still wins if/when networked multiplayer ships.
+- **NestJS backend** — tried the "C#-flavored TS backend" angle. Verdict: cosplays ASP.NET without the payoff. Skip.
+- **Separate Python/FastAPI backend** — adds a deploy and breaks shared types with the frontend. Not worth it for a game this size.
+
+**What stays true from the original research:**
+- Pixel art over ASCII is the big visual unlock.
+- "Static sprite + CSS transforms" gets 90% of Gen 1 Pokémon feel. No Phaser/game engine for v1.
+- Claude-as-referee pattern ports directly; structured output stays central.
 
 ## If/when porting to web
 
@@ -57,13 +60,10 @@ Rough file structure — keep CLI version intact:
 ```
 VibeMonsters/
   vibemonsters.py          # CLI stays
-  web/
-    src/                   # Vite + React
-    server/                # PartyKit room logic
-    shared/                # Zod schemas (port of Pydantic models)
+  vibemonsters-web/        # SvelteKit fullstack (see PLAN.md)
 ```
 
-Core loop stays identical. Claude is still the referee. The work is UI + realtime sync + sprite gen.
+Core loop stays identical. Claude is still the referee. The work is UI + sprite gen + (eventually) realtime sync.
 
 ## Open question
 
