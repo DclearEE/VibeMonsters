@@ -7,7 +7,7 @@ The existing `vibemonsters.py` CLI stays as-is. This is a parallel web version, 
 ## Tech stack (settled)
 
 - **Runtime:** Bun (latest). Production-ready, ~95% npm compat, SvelteKit-supported. Built-in package manager + test runner.
-- **Framework:** SvelteKit. Frontend + server routes in one codebase. Static adapter for PWA + future Capacitor.
+- **Framework:** SvelteKit. Frontend + server routes in one codebase. `adapter-node` (runs on Bun; API routes need a runtime, static adapter doesn't have one).
 - **Language:** TypeScript, `strict: true` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`. No `any` — ever. `unknown` + Zod parse at boundaries.
 - **Validation:** Zod — runtime + inferred static types from a single definition. Same mental model as Pydantic.
 - **Lint/format:** Biome — one tool, fast, replaces ESLint+Prettier.
@@ -75,14 +75,14 @@ vibemonsters-web/
 
 ## Step 0 — Project setup (~20 min)
 
-- [ ] `bun create svelte@latest vibemonsters-web` (Skeleton, TypeScript, no ESLint/Prettier — Biome instead)
-- [ ] `bun add zod @anthropic-ai/sdk @google/genai`
-- [ ] `bun add -d @biomejs/biome vite-plugin-pwa @sveltejs/adapter-static`
-- [ ] Switch `svelte.config.js` to `adapter-static`
-- [ ] `tsconfig.json`: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`
-- [ ] `biome.json` with strict ruleset; wire `bun run check`
-- [ ] `.env.example` with `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`
-- [ ] `src/lib/server/env.ts` — Zod-parsed env, fails loud on missing keys
+- [x] `bunx sv create vibemonsters-web` (Skeleton, TypeScript, no ESLint/Prettier — Biome instead)
+- [x] `bun add zod @anthropic-ai/sdk @google/genai`
+- [x] `bun add -d @biomejs/biome @vite-pwa/sveltekit @sveltejs/adapter-node`
+- [x] Switch `svelte.config.js` to `adapter-node`
+- [x] `tsconfig.json`: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`
+- [x] `biome.json` with strict ruleset
+- [x] `.env.example` with `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `PUBLIC_API_BASE_URL`
+- [x] `src/lib/server/env.ts` — Zod-parsed env, fails loud on missing keys
 
 ## Step 1 — Schemas (port from Pydantic) (~20 min)
 
@@ -163,7 +163,7 @@ Svelte's built-in `{#each}` + transitions handle floaters and badges in ~20 line
 - [ ] Test: `bun run build && bun run preview`, add to home screen on a phone, confirm standalone launch
 
 **Capacitor future-proofing (do now, use later):**
-- `adapter-static` build output is Capacitor-wrappable as-is.
+- We're on `adapter-node` for v1 (Docker). When Capacitor lands, generate a static frontend build separately (swap adapter at build time, or maintain two configs) and point it at the hosted API.
 - Single `PUBLIC_API_BASE_URL` env; client uses it for all API calls so a native build can point at a hosted API instead of same-origin.
 - No browser-only APIs without a feature check.
 - No service-worker logic that assumes same-origin requests.
